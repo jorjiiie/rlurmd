@@ -1,20 +1,7 @@
+use crate::protocol;
 use bpaf::{Parser, construct};
-use std::path::PathBuf;
 
-#[derive(Clone, Debug)]
-/// Options for rlumd job submission
-pub struct SubmitJobOptions {
-    /// CPU threads to use
-    cpus: Option<usize>,
-
-    /// Memory to use in GB
-    memory_limit: Option<usize>,
-
-    /// job to run
-    job_path: PathBuf,
-}
-
-impl SubmitJobOptions {
+impl protocol::SubmitJobOptions {
     pub fn parser() -> impl Parser<Self> {
         let cpus = bpaf::long("cpus")
             .help("CPU threads to use (override)")
@@ -24,17 +11,17 @@ impl SubmitJobOptions {
             .help("Memory to use in GB (override)")
             .argument::<usize>("MEMORY_LIMIT")
             .optional();
-        let job_path = bpaf::positional::<PathBuf>("JOB").help("job to run");
+        let id = bpaf::positional::<String>("JOB").help("Staged job to submit (ID or name)");
 
         construct!(Self {
             cpus,
             memory_limit,
-            job_path
+            id
         })
     }
 }
 
-pub fn submit_job(options: SubmitJobOptions) {
+pub fn submit_job(options: protocol::SubmitJobOptions) {
     println!("Submitting job with options: {:?}", options);
 }
 
@@ -52,4 +39,17 @@ impl LsOptions {
 
 pub fn ls(options: LsOptions) {
     println!("ls or something like thag");
+}
+
+impl protocol::CancelJobOptions {
+    pub fn parser() -> impl Parser<Self> {
+        let id = bpaf::positional::<String>("JOB").help("Job to cancel (ID or name)");
+        construct!(Self { id })
+    }
+}
+
+pub fn cancel_job(options: protocol::CancelJobOptions) {
+    // TODO: send the request over the daemon connection.
+    let request = protocol::Request::Cancel(options);
+    println!("Cancel request: {request:?}");
 }

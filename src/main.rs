@@ -2,11 +2,14 @@ use bpaf::{Parser, construct};
 
 mod commands;
 mod daemon;
+mod protocol;
+mod runner;
 
 #[derive(Clone, Debug)]
 /// Options for rlurmd
 enum RlurmdOptions {
-    Submit(commands::SubmitJobOptions),
+    Submit(protocol::SubmitJobOptions),
+    Cancel(protocol::CancelJobOptions),
     Daemon(daemon::Config),
     Ls(commands::LsOptions),
 }
@@ -20,7 +23,7 @@ impl RlurmdOptions {
             .command("daemon")
             .help("start the rlurmd daemon");
 
-        let submit = commands::SubmitJobOptions::parser()
+        let submit = protocol::SubmitJobOptions::parser()
             .map(RlurmdOptions::Submit)
             .to_options()
             .descr("submit a job and override resource limits if necessary")
@@ -34,7 +37,14 @@ impl RlurmdOptions {
             .command("ls")
             .help("list all jobs in the rlurmd daemon");
 
-        construct!([daemon, submit, ls])
+        let cancel = protocol::CancelJobOptions::parser()
+            .map(RlurmdOptions::Cancel)
+            .to_options()
+            .descr("Cancel a queued or running job")
+            .command("cancel")
+            .help("Cancel a job");
+
+        construct!([daemon, submit, ls, cancel])
     }
 }
 fn main() {
@@ -44,6 +54,7 @@ fn main() {
     match rlurmd_options {
         RlurmdOptions::Daemon(config) => daemon::run(config),
         RlurmdOptions::Submit(options) => commands::submit_job(options),
+        RlurmdOptions::Cancel(options) => commands::cancel_job(options),
         RlurmdOptions::Ls(options) => commands::ls(options),
     }
 }
